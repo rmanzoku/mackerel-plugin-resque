@@ -58,7 +58,7 @@ func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
 	queuesKey := fmt.Sprintf("%s:%s", r.Namespace, "queues")
 	queues, err := redisClient.SMembers(queuesKey).Result()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	for _, q := range queues {
@@ -66,7 +66,7 @@ func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
 		qKey := fmt.Sprintf("%s:%s:%s", r.Namespace, "queue", q)
 		qlen, err := redisClient.LLen(qKey).Result()
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
 		ret["queue."+q+".pending"] = float64(qlen)
@@ -76,21 +76,21 @@ func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
 	workerKey := fmt.Sprintf("%s:%s", r.Namespace, "workers")
 	workerProcesses, err := redisClient.SCard(workerKey).Result()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	ret["processes"] = float64(workerProcesses)
 
 	failedKey := fmt.Sprintf("%s:%s", r.Namespace, "stat:failed")
 	failedCount, err := redisClient.Get(failedKey).Float64()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	ret["failed"] = failedCount
 
 	processedKey := fmt.Sprintf("%s:%s", r.Namespace, "stat:processed")
 	processedCount, err := redisClient.Get(processedKey).Float64()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	ret["processed"] = processedCount
 
