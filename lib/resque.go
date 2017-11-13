@@ -13,7 +13,7 @@ var graphdef = map[string]mp.Graphs{
 		Label: "Resque Queue",
 		Unit:  "integer",
 		Metrics: []mp.Metrics{
-			{Name: "pending", Label: "pending", Diff: false, Stacked: true},
+			{Name: "pending", Label: "Pending", Diff: false, Stacked: true},
 		},
 	},
 	"worker": {
