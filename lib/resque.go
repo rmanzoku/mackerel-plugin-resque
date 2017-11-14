@@ -9,15 +9,22 @@ import (
 )
 
 var graphdef = map[string]mp.Graphs{
+	"queues": {
+		Label: "Resque queues",
+		Unit:  "integer",
+		Metrics: []mp.Metrics{
+			{Name: "pending_sum", Label: "Sum pending count", Diff: false, Stacked: true},
+		},
+	},
 	"queue.#": {
-		Label: "Resque Queue",
+		Label: "Resque queue",
 		Unit:  "integer",
 		Metrics: []mp.Metrics{
 			{Name: "pending", Label: "Pending", Diff: false, Stacked: true},
 		},
 	},
 	"worker": {
-		Label: "Resque Worker",
+		Label: "Resque worker",
 		Unit:  "integer",
 		Metrics: []mp.Metrics{
 			{Name: "processes", Label: "Processes", Diff: false},
@@ -61,6 +68,9 @@ func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	var pendingSum int64
+	pendingSum = 0
+
 	for _, q := range queues {
 
 		qKey := fmt.Sprintf("%s:%s:%s", r.Namespace, "queue", q)
@@ -68,10 +78,11 @@ func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		ret["queue."+q+".pending"] = float64(qlen)
+		pendingSum += qlen
 
 	}
+	ret["pending_sum"] = float64(pendingSum)
 
 	workerKey := fmt.Sprintf("%s:%s", r.Namespace, "workers")
 	workerProcesses, err := redisClient.SCard(workerKey).Result()
