@@ -17,11 +17,11 @@ var graphdef = map[string]mp.Graphs{
 			{Name: "pending_sum", Label: "Sum pending count", Diff: false, Stacked: true},
 		},
 	},
-	"queue.#": {
+	"queue": {
 		Label: "Resque queue",
 		Unit:  "integer",
 		Metrics: []mp.Metrics{
-			{Name: "pending", Label: "Pending", Diff: false, Stacked: true},
+			{Name: "#", Diff: false, Stacked: true},
 		},
 	},
 	"worker": {
@@ -90,7 +90,7 @@ func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		ret["queue."+q+".pending"] = float64(qlen)
+		ret["queue."+q] = float64(qlen)
 		pendingSum += qlen
 
 	}
