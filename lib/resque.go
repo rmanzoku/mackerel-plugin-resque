@@ -3,6 +3,7 @@ package mpresque
 import (
 	"flag"
 	"fmt"
+	"log"
 
 	"github.com/go-redis/redis"
 	mp "github.com/mackerelio/go-mackerel-plugin-helper"
@@ -48,22 +49,31 @@ type ResquePlugin struct {
 	Port      string
 	Password  string
 	DB        int
+	Redis     *redis.Client
 }
 
-// FetchMetrics interface for mackerelplugin
-func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
-	ret := make(map[string]interface{})
-
+func (r *ResquePlugin) prepare() error {
 	addr := fmt.Sprintf("%s:%s", r.Host, r.Port)
-	redisClient := redis.NewClient(&redis.Options{
+	r.Redis = redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: r.Password,
 		DB:       r.DB,
 		Network:  "tcp",
 	})
 
+	_, err := r.Redis.Ping().Result()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// FetchMetrics interface for mackerelplugin
+func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
+	ret := make(map[string]interface{})
+
 	queuesKey := fmt.Sprintf("%s:%s", r.Namespace, "queues")
-	queues, err := redisClient.SMembers(queuesKey).Result()
+	queues, err := r.Redis.SMembers(queuesKey).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +84,7 @@ func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
 	for _, q := range queues {
 
 		qKey := fmt.Sprintf("%s:%s:%s", r.Namespace, "queue", q)
-		qlen, err := redisClient.LLen(qKey).Result()
+		qlen, err := r.Redis.LLen(qKey).Result()
 		if err != nil {
 			return nil, err
 		}
@@ -85,21 +95,21 @@ func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
 	ret["pending_sum"] = float64(pendingSum)
 
 	workerKey := fmt.Sprintf("%s:%s", r.Namespace, "workers")
-	workerProcesses, err := redisClient.SCard(workerKey).Result()
+	workerProcesses, err := r.Redis.SCard(workerKey).Result()
 	if err != nil {
 		return nil, err
 	}
 	ret["processes"] = float64(workerProcesses)
 
 	failedKey := fmt.Sprintf("%s:%s", r.Namespace, "stat:failed")
-	failedCount, err := redisClient.Get(failedKey).Float64()
+	failedCount, err := r.Redis.Get(failedKey).Float64()
 	if err != nil {
 		return nil, err
 	}
 	ret["failed"] = failedCount
 
 	processedKey := fmt.Sprintf("%s:%s", r.Namespace, "stat:processed")
-	processedCount, err := redisClient.Get(processedKey).Float64()
+	processedCount, err := r.Redis.Get(processedKey).Float64()
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +153,11 @@ func Do() {
 	resque.Port = *optPort
 	resque.Password = *optPassword
 	resque.DB = *optDB
+
+	err := resque.prepare()
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	helper := mp.NewMackerelPlugin(resque)
 	helper.Tempfile = *optTempfile
