@@ -124,6 +124,24 @@ func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
 // GraphDefinition interface for mackerelplugin
 func (r ResquePlugin) GraphDefinition() map[string]mp.Graphs {
 	graphdef := graphdef
+
+	var queuesMetrics []mp.Metrics
+	for _, v := range r.Queues {
+		m := mp.Metrics{
+			Name:    v,
+			Label:   v,
+			Diff:    false,
+			Stacked: true,
+		}
+		queuesMetrics = append(queuesMetrics, m)
+	}
+
+	graphdef["pending"] = mp.Graphs{
+		Label:   "Resque queue",
+		Unit:    "integer",
+		Metrics: queuesMetrics,
+	}
+
 	return graphdef
 }
 
