@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/go-redis/redis"
-	mp "github.com/mackerelio/go-mackerel-plugin-helper"
+	mp "github.com/mackerelio/go-mackerel-plugin"
 )
 
 var graphdef = map[string]mp.Graphs{
@@ -70,8 +70,8 @@ func (r *ResquePlugin) prepare() error {
 }
 
 // FetchMetrics interface for mackerelplugin
-func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
-	ret := make(map[string]interface{})
+func (r ResquePlugin) FetchMetrics() (map[string]float64, error) {
+	ret := make(map[string]float64)
 
 	for _, q := range r.Queues {
 
