@@ -10,13 +10,6 @@ import (
 )
 
 var graphdef = map[string]mp.Graphs{
-	"queues": {
-		Label: "Resque queues",
-		Unit:  "integer",
-		Metrics: []mp.Metrics{
-			{Name: "pending_sum", Label: "Sum pending count", Diff: false, Stacked: true},
-		},
-	},
 	"queue": {
 		Label: "Resque queue",
 		Unit:  "integer",
@@ -80,9 +73,6 @@ func (r *ResquePlugin) prepare() error {
 func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
 	ret := make(map[string]interface{})
 
-	var pendingSum int64
-	pendingSum = 0
-
 	for _, q := range r.Queues {
 
 		qKey := fmt.Sprintf("%s:%s:%s", r.Namespace, "queue", q)
@@ -91,10 +81,8 @@ func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
 			return nil, err
 		}
 		ret["queue."+q] = float64(qlen)
-		pendingSum += qlen
 
 	}
-	ret["pending_sum"] = float64(pendingSum)
 
 	workerKey := fmt.Sprintf("%s:%s", r.Namespace, "workers")
 	workerProcesses, err := r.Redis.SCard(workerKey).Result()
