@@ -50,6 +50,7 @@ type ResquePlugin struct {
 	Password  string
 	DB        int
 	Redis     *redis.Client
+	Queues    []string
 }
 
 func (r *ResquePlugin) prepare() error {
@@ -65,6 +66,13 @@ func (r *ResquePlugin) prepare() error {
 	if err != nil {
 		return err
 	}
+
+	queuesKey := fmt.Sprintf("%s:%s", r.Namespace, "queues")
+	r.Queues, err = r.Redis.SMembers(queuesKey).Result()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -72,16 +80,10 @@ func (r *ResquePlugin) prepare() error {
 func (r ResquePlugin) FetchMetrics() (map[string]interface{}, error) {
 	ret := make(map[string]interface{})
 
-	queuesKey := fmt.Sprintf("%s:%s", r.Namespace, "queues")
-	queues, err := r.Redis.SMembers(queuesKey).Result()
-	if err != nil {
-		return nil, err
-	}
-
 	var pendingSum int64
 	pendingSum = 0
 
-	for _, q := range queues {
+	for _, q := range r.Queues {
 
 		qKey := fmt.Sprintf("%s:%s:%s", r.Namespace, "queue", q)
 		qlen, err := r.Redis.LLen(qKey).Result()
